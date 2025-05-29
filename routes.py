@@ -33,46 +33,35 @@ def register_routes(app, chatbot, conversations, AI_MODEL):
                 "buenas tardes",
                 "buenas noches",
             ]:
-                resp.message("Hola! Soy tu asistente de IA. ¿En qué puedo ayudarte?")
+                resp.message(
+                    "Hi there! 😊 I’m here to help with whatever you need — just ask away!"
+                )
                 return str(resp)
 
             # Comandos especiales
-            if incoming_msg.lower() in ["/help", "ayuda", "help"]:
-                help_text = """🤖 **Comandos disponibles:**
-• `/reset` - Reinicia la conversación
-• `/help` - Muestra esta ayuda
 
-¡Pregúntame lo que quieras! 😊"""
-                resp.message(help_text)
-                return str(resp)
-
-            if incoming_msg.lower() in ["/reset", "reset", "reiniciar"]:
+            if incoming_msg.lower() in ["/reset", "reset"]:
                 # Limpiar historial de conversación
                 if from_number in conversations:
                     del conversations[from_number]
-                resp.message("✅ Conversación reiniciada. ¿En qué puedo ayudarte?")
+                resp.message(
+                    "All set! 🔄 I’ve reset everything — feel free to start fresh anytime."
+                )
                 return str(resp)
 
             # Generar respuesta con IA
             try:
-                # Generar respuesta con timeout simple
-                with ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(
-                        chatbot.generate_response, from_number, incoming_msg
+                ai_response = chatbot.generate_response(from_number, incoming_msg)
+
+                # Verificar que tenemos una respuesta válida
+                if ai_response:
+                    resp.message(ai_response)
+                else:
+                    resp.message(
+                        "No pude generar una respuesta. Por favor, intenta de nuevo."
                     )
-                    try:
-                        ai_response = future.result(timeout=12)  # 12 segundos máximo
 
-                        # Enviar respuesta
-                        resp.message(ai_response)
-                        return str(resp)
-
-                    except TimeoutError:
-                        logger.error(f"Timeout alcanzado para: {incoming_msg[:30]}...")
-                        resp.message(
-                            "Tu consulta está tardando más de lo esperado. Por favor, intenta con una pregunta más específica."
-                        )
-                        return str(resp)
+                return str(resp)
 
             except Exception as ai_error:
                 logger.error(f"Error al generar respuesta: {str(ai_error)}")
